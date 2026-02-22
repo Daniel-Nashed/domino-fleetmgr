@@ -1,0 +1,173 @@
+apiVersion: apps/v1
+kind: StatefulSet
+
+metadata:
+  name: ${SERVERSETUP_SERVER_NAME}
+  namespace: ${NAMESPACE}
+  labels:
+    app.kubernetes.io/name: domino
+    app.kubernetes.io/instance: ${SERVERSETUP_SERVER_NAME}
+
+spec:
+  serviceName: ${SERVERSETUP_SERVER_NAME}
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: domino
+      app.kubernetes.io/instance: ${SERVERSETUP_SERVER_NAME}
+
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: domino
+        app.kubernetes.io/instance: ${SERVERSETUP_SERVER_NAME}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9100"
+        prometheus.io/path: "/metrics"
+
+    spec:
+      hostname: ${SERVERSETUP_SERVER_NAME}
+      hostAliases:
+        - ip: "127.0.0.1"
+          hostnames:
+            - "${SERVERSETUP_SERVER_NAME}"
+            - "${SERVERSETUP_SERVER_NAME}.${NAMESPACE}.svc.cluster.local"
+
+      imagePullSecrets:
+        - name: regcred
+
+      terminationGracePeriodSeconds: 300
+
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: "OnRootMismatch"
+
+      dnsPolicy: ClusterFirst
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
+
+      containers:
+        - name: ${NAMESPACE}
+          image: "${CONTAINER_IMAGE}"
+          imagePullPolicy: Always
+          env:
+            - name: LANG
+              value: "${SERVERSETUP_LANG}"
+
+            - name: DOMSETUP_ENABLED
+              value: "1"
+
+            - name: DOMSETUP_BEARER 
+              value: "${DOMSETUP_BEARER}" 
+
+            - name: DOMINO_PROM_STATS_DIR
+              value: "/metrics"
+
+          securityContext:
+
+            capabilities:
+              add: ["SYS_PTRACE"]
+            runAsNonRoot: true
+            runAsUser: 1000
+
+          volumeMounts:
+            - name: domino-data
+              mountPath: /local
+            - name: metrics-dir
+              mountPath: /metrics
+
+          ports:
+            - name: nrpc
+              containerPort: 1352
+            - name: http
+              containerPort: 80
+            - name: https
+              containerPort: 443
+            - name: nomad
+              containerPort: 9443
+            - name: metrics
+              containerPort: 9100
+
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "2Gi"
+            limits:
+              cpu: "2"
+              memory: "8Gi"
+
+          startupProbe:
+            tcpSocket:
+              port: 443
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 30 
+            successThreshold: 1
+
+          readinessProbe:
+            tcpSocket:
+              port: 443
+            periodSeconds: 60
+            timeoutSeconds: 3
+            failureThreshold: 2
+            successThreshold: 1
+
+          livenessProbe:
+            tcpSocket:
+              port: 443
+            periodSeconds: 60
+            timeoutSeconds: 3
+            failureThreshold: 20
+            successThreshold: 1
+
+      volumes:
+        - name: metrics-dir
+          emptyDir:
+            medium: Memory
+            sizeLimit: 4Mi
+
+  volumeClaimTemplates:
+    - metadata:
+        name: domino-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 50Gi
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${SERVERSETUP_SERVER_NAME}
+  namespace: ${NAMESPACE}
+spec:
+  clusterIP: None
+  selector:
+    statefulset.kubernetes.io/pod-name: ${SERVERSETUP_SERVER_NAME}-0
+  publishNotReadyAddresses: true
+
+  ports:
+    - name: nrpc
+      protocol: TCP
+      port: 1352
+      targetPort: 1352
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 80
+    - name: https
+      protocol: TCP
+      port: 443
+      targetPort: 443
+    - name: nomad
+      protocol: TCP
+      port: 9443
+      targetPort: 9443
+---
+

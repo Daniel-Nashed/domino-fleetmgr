@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: domino-pod-monitor
+  namespace: cattle-monitoring-system
+  labels:
+    release: rancher-monitoring
+spec:
+  namespaceSelector:
+    matchNames:
+      - domino
+  selector: {}
+  podMetricsEndpoints:
+    - path: /metrics
+      port: metrics
+      interval: 60s
+
+

@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cube-control-only-dom-admin
+  namespace: domino
+spec:
+  podSelector:
+    matchLabels:
+      app: cube-control
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: dom-admin
+      ports:
+        - protocol: TCP
+          port: 8080

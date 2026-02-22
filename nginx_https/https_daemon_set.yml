@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    app: domino-https
+  name: domino-https
+  namespace: domino
+
+spec:
+  selector:
+    matchLabels:
+      app: domino-https
+
+  template:
+    metadata:
+      labels:
+        app: domino-https
+
+    spec:
+      containers:
+        - name: domino-https
+          image: nginx:alpine
+          imagePullPolicy: Always
+          env:
+            - name: LANG
+              value: en_US.UTF-8
+          ports:
+            - containerPort: 80 
+              protocol: TCP
+            - containerPort: 443
+              protocol: TCP
+            - containerPort: 9443 
+              protocol: TCP
+
+          securityContext:
+            runAsNonRoot: false 
+            runAsUser: 0
+          volumeMounts:
+            - name: nginx-conf
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+            - name: tls-nginx-secret 
+              mountPath: /certs
+
+      imagePullSecrets:
+        - name: regcred
+      restartPolicy: Always
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        runAsNonRoot: true
+        runAsUser: 1000
+      terminationGracePeriodSeconds: 5
+
+      dnsPolicy: ClusterFirst
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
+
+      volumes:
+        - name: nginx-conf
+          configMap:
+            name: domino-https-nginx-conf
+        - name: tls-nginx-secret
+          secret:
+            secretName: tls-nginx-secret 
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: domino-https-lb
+  namespace: domino
+  annotations:
+    metallb.io/allow-shared-ip: "nginx-shared"
+spec:
+  type: LoadBalancer
+  loadBalancerIP: 194.164.207.70
+  selector:
+    app: domino-https
+
+  ports:
+    - name: http
+      port: 80 
+      targetPort: 80
+      protocol: TCP
+        
+    - name: https
+      port: 443
+      targetPort: 443
+      protocol: TCP
+
+    - name: nomad
+      port: 9443
+      targetPort: 9443
+      protocol: TCP
+        
+  externalTrafficPolicy: Cluster # Local does not work when sharing the IP between multiple services
+

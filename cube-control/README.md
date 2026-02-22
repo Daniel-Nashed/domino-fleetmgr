@@ -1,0 +1,39 @@
+# Cube Control
+
+
+Cube Control provides a local REST API interface to bridge between **kubectl** and the Domino Fleet Manager components.
+Domino Fleet Manager uses Lotus Script REST API requests to apply **YAML** files to manage Domino Kubernetes resources.
+                                                                                                  
+Cube Control listens on port 8080 by default and provides an `/apply` endpoint.
+The endpoint is protected using a Bearer token, which can be provided in a secret or via an environment variable.
+
+
+## Environment variables
+
+- **CUBE_CONTROL_LISTEN_ADDR** (default: `:8080`)
+  The listen address for HTTP requests.
+  The application does not support HTTPS. NGINX can be added in front using a separate container.
+
+- **CUBE_CONTROL_TOKEN**
+  The access token can be either configured by an environment variable or a file.
+  The environment variable overrides the token file
+
+- **CUBE_CONTROL_TOKEN_FILE** (default: `/var/run/secrets/cube-control/token`)
+  The token can be also read from a file.
+
+
+## Technology used
+
+The container image uses Alpine as the base image.
+A small GO application is handling the requests and passes them to **kubectl**.
+The latest stable version of **kubectl** version is downloaded from the Kubernetes GitHub repository and installed into the container.
+
+
+
+## How to build the container image
+
+Run the following command to build the image based on the latest Alpine base image:
+
+```
+./build.sh
+```

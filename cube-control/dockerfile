@@ -1,0 +1,35 @@
+FROM golang:alpine AS builder
+
+WORKDIR /app
+
+# Copy go module files first (better layer caching)
+COPY go.mod ./
+RUN go mod download
+
+# Copy source
+COPY main.go .
+
+# Build static binary
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+    go build -trimpath -ldflags="-s -w" -o cube-control
+
+# ---- Runtime image ----
+
+FROM alpine:3.19
+
+RUN apk add --no-cache curl ca-certificates
+
+# Install kubectl
+RUN set -eux; \
+    KUBECTL_VERSION="$(curl -L -s https://dl.k8s.io/release/stable.txt)"; \
+    curl -L -o /usr/local/bin/kubectl \
+      "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"; \
+    chmod +x /usr/local/bin/kubectl
+
+# Copy binary
+COPY --from=builder /app/cube-control /usr/local/bin/cube-control
+
+USER 1000
+EXPOSE 8080
+
+ENTRYPOINT ["/usr/local/bin/cube-control"]

@@ -1,0 +1,9 @@
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshot
+metadata:
+  name: dom-adm-snap-01
+  namespace: domino
+spec:
+  volumeSnapshotClassName: longhorn-snapclass
+  source:
+    persistentVolumeClaimName: dom-adm

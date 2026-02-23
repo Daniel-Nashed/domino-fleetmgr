@@ -16,4 +16,4 @@ spec:
               app.kubernetes.io/instance: dom-admin
       ports:
         - protocol: TCP
-          port: 8080
+          port: 8443

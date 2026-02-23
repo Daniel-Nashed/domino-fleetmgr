@@ -2,6 +2,7 @@ package main
 
 import (
     "context"
+    "crypto/tls"
     "encoding/json"
     "io"
     "log"
@@ -14,8 +15,12 @@ import (
     "time"
 )
 
+
 const (
-    defaultListenAddr = ":8080"
+    version   = "0.9.0"
+    copyright = "Copyright 2026 Nash!Com/Daniel Nashed. All rights reserved."
+
+    defaultListenAddr = ":8443"
     maxBodySize       = 5 << 20 // 5 MB
 )
 
@@ -34,23 +39,56 @@ type ApplyResponse struct {
     Error     string `json:"error,omitempty"`
 }
 
-func main() {
 
+
+func main() {
     listenAddr := getenv("CUBE_CONTROL_LISTEN_ADDR", defaultListenAddr)
     apiToken := loadToken()
+
+    const (
+        tlsCertFile = "/tls/tls.crt"
+        tlsKeyFile  = "/tls/tls.key"
+    )
+
+    log.SetFlags(0)
+
+    if len(os.Args) > 1 && os.Args[1] == "--version" {
+        log.Println(version)
+        return
+    }
 
     mux := http.NewServeMux()
     mux.HandleFunc("/apply", applyHandler(apiToken))
 
-    server := &http.Server{
-        Addr:    listenAddr,
-        Handler: mux,
+    tlsConfig := &tls.Config{
+        MinVersion: tls.VersionTLS12,
+        MaxVersion: tls.VersionTLS13,
     }
 
-    // Graceful shutdown
+    server := &http.Server{
+        Addr:      listenAddr,
+        Handler:   mux,
+        TLSConfig: tlsConfig,
+    }
+
+    log.Println("")
+    log.Printf("Cube Control %s", version)
+    log.Println(copyright)
+    log.Println("")
+
+    log.Printf("Waiting for TLS certificate and key in /tls ...")
+
+    for {
+        if fileExists(tlsCertFile) && fileExists(tlsKeyFile) {
+            break
+        }
+        time.Sleep(2 * time.Second)
+    }
+
+    log.Printf("TLS certificate and key found. Starting Cube Control on %s (TLS)", listenAddr)
+
     go func() {
-        log.Printf("Cube Control listening on %s", listenAddr)
-        if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+        if err := server.ListenAndServeTLS(tlsCertFile, tlsKeyFile); err != nil && err != http.ErrServerClosed {
             log.Fatalf("Listen error: %v", err)
         }
     }()
@@ -63,8 +101,12 @@ func main() {
 
     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
     defer cancel()
-    server.Shutdown(ctx)
+
+    if err := server.Shutdown(ctx); err != nil {
+        log.Printf("Shutdown error: %v", err)
+    }
 }
+
 
 func applyHandler(expectedToken string) http.HandlerFunc {
 
@@ -137,6 +179,16 @@ func applyHandler(expectedToken string) http.HandlerFunc {
 
     }
 }
+
+
+func fileExists(path string) bool {
+    info, err := os.Stat(path)
+    if err != nil {
+        return false
+    }
+    return !info.IsDir()
+}
+
 
 func getenv(key, fallback string) string {
     val := os.Getenv(key)

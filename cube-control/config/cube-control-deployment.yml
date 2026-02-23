@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cube-control
+  namespace: domino
+  labels:
+    app: cube-control
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cube-control
+  template:
+    metadata:
+      labels:
+        app: cube-control
+    spec:
+      serviceAccountName: cube-control-sa
+
+      imagePullSecrets:
+        - name: regcred
+
+      containers:
+        - name: cube-control
+          image: nashcom/domino:cube-control
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8443
+          volumeMounts:
+            - name: cube-control-token
+              mountPath: /var/run/secrets/cube-control
+              readOnly: true
+            - name: tls-volume
+              mountPath: /tls
+              readOnly: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+
+      volumes:
+        - name: cube-control-token
+          secret:
+            secretName: cube-control-token
+            optional: true
+        - name: tls-volume
+          secret:
+            secretName: cube-control-tls
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cube-control
+  namespace: domino
+spec:
+  selector:
+    app: cube-control
+  ports:
+    - name: https
+      port: 443
+      targetPort: 8443
+  type: ClusterIP

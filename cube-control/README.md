@@ -10,17 +10,16 @@ The endpoint is protected using a Bearer token, which can be provided in a secre
 
 ## Environment variables
 
-- **CUBE_CONTROL_LISTEN_ADDR** (default: `:8443`)
-  The listen address for HTTP requests.
-  The application does not support HTTPS. NGINX can be added in front using a separate container.
 
-- **CUBE_CONTROL_TOKEN**
-  The access token can be either configured by an environment variable or a file.
-  The environment variable overrides the token file
 
-- **CUBE_CONTROL_TOKEN_FILE** (default: `/var/run/secrets/cube-control/token`)
-  The token can be also read from a file.
-
+| Variable                          | Description                                                                 | Default                                              |
+|:----------------------------------|:----------------------------------------------------------------------------|:-----------------------------------------------------|
+| CUBE_CONTROL_LISTEN_ADDR          | Listen address for HTTP requests. The application does not support HTTPS. NGINX can be placed in front using a separate container. | :8443                                               |
+| CUBE_CONTROL_SERVER_NAME          | Server name                                                                 | cube-control.domino.svc.cluster.local               |
+| CUBE_CONTROL_CERTMGR_SERVER       | CertMgr server to connect to when checking for certificate updates         | —                                                   |
+| CUBE_CONTROL_TOKEN_FILE           | File name to read the authentication token from                            | /var/run/secrets/cube-control/token                 |
+| CUBE_CONTROL_TOKEN                | Authentication token stored in environment variable (overrides token file) | —                                                   |
+| CUBE_CONTROL_CFG_CHECK_INTERVAL   | Certificate and token update check interval                                | 120s                                                |
 
 ## Technology used
 

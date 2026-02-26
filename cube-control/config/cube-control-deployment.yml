@@ -49,7 +49,9 @@ spec:
         - name: tls-volume
           secret:
             secretName: cube-control-tls
+            optional: true
 ---
+
 apiVersion: v1
 kind: Service
 metadata:

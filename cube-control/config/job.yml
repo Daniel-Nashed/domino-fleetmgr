@@ -2,7 +2,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: cube-test-job
-  namespace: default
+  namespace: domino
 spec:
   backoffLimit: 0
   template:
@@ -15,7 +15,7 @@ spec:
           - /bin/sh
           - -c
           - |
-            echo "Hello from cube-control";
+            echo "Hello world from cube-control";
             date;
             sleep 5;
             echo "Job completed."

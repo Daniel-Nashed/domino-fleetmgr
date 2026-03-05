@@ -52,12 +52,14 @@ const (
     StatusError   Status = "error"
 )
 
+
 type ApplyResponse struct {
     Timestamp string `json:"timestamp"`
     Status    Status `json:"status"`
     Output    string `json:"output,omitempty"`
     Error     string `json:"error,omitempty"`
 }
+
 
 var globalApiToken atomic.Value
 
@@ -555,14 +557,15 @@ func loadCertificateFromDisk(certPath string) ([]*x509.Certificate, error) {
 
 
 func dumpCertificateChain(chain []*x509.Certificate) {
-    log.Printf("")
-    log.Printf("---------------------------------------------------")
-    log.Printf("Certificates: %d", len(chain))
-    log.Printf("---------------------------------------------------")
-    log.Printf("")
+
+    fmt.Printf("\n")
+    fmt.Printf("---------------------------------------------------\n")
+    fmt.Printf("Certificates: %d\n", len(chain))
+    fmt.Printf("---------------------------------------------------\n")
+    fmt.Printf("\n")
 
     for i, cert := range chain {
-        log.Printf("----- Certificate %d -----\n\n", i)
+        fmt.Printf("----- Certificate %d -----\n\n", i)
 
         if i == 0 {
             fmt.Printf("%-15s : %s\n", "Type", "Leaf")
@@ -614,7 +617,7 @@ func dumpCertificateChain(chain []*x509.Certificate) {
         fmt.Printf("%-15s : %s\n", "NotBefore", cert.NotBefore.Format(time.RFC3339))
         fmt.Printf("%-15s : %s\n", "NotAfter", cert.NotAfter.Format(time.RFC3339))
 
-        log.Printf("")
+        fmt.Printf("\n")
     }
 }
 
